@@ -4,6 +4,8 @@
 #ifdef HAS_LIBMGBA
 
 #include "DolphinQt/GBAWidget.h"
+#include "DolphinQt/GBAStreamServer.h"
+#include "DolphinQt/QRCodeDialog.h"
 
 #include <fmt/format.h>
 
@@ -88,6 +90,8 @@ GBAWidget::GBAWidget(std::weak_ptr<HW::GBA::Core> core, const HW::GBA::CoreInfo&
 
   LoadSettings();
   UpdateTitle();
+
+  m_stream_server = std::make_unique<GBAStreamServer>(m_local_pad);
 }
 
 GBAWidget::~GBAWidget()
@@ -117,6 +121,10 @@ void GBAWidget::SetVideoBuffer(std::span<const u32> video_buffer)
   {
     m_last_frame = QImage();
   }
+
+  if (m_stream_server && m_stream_server->IsRunning())
+    m_stream_server->BroadcastFrame(m_last_frame);
+
   update();
 }
 
@@ -449,6 +457,17 @@ void GBAWidget::contextMenuEvent(QContextMenuEvent* event)
   connect(blending_action, &QAction::triggered, this,
           [this] { m_interframe_blending = !m_interframe_blending; });
 
+  auto* stream_action = new QAction(tr("Stream to Mobile (QR)..."), menu);
+  connect(stream_action, &QAction::triggered, this, [this] {
+    if (!m_stream_server->IsRunning())
+    {
+      if (!m_stream_server->Start(43576))
+        return;
+    }
+    QRCodeDialog dlg(m_stream_server->GetUrl(), this);
+    dlg.exec();
+  });
+
   menu->addAction(disconnect_action);
   menu->addSeparator();
   menu->addAction(load_action);
@@ -462,6 +481,7 @@ void GBAWidget::contextMenuEvent(QContextMenuEvent* event)
   menu->addAction(mute_action);
   menu->addSeparator();
   menu->addMenu(options_menu);
+  menu->addAction(stream_action);
 
   savefile_menu->addAction(save_import_action);
   savefile_menu->addAction(save_export_action);

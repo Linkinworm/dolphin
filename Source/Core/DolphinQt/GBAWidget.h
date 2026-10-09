@@ -18,6 +18,7 @@
 
 #include "Common/CommonTypes.h"
 #include "Core/HW/GBACore.h"
+#include "DolphinQt/GBAStreamServer.h"
 
 class QCloseEvent;
 class QContextMenuEvent;
@@ -25,6 +26,7 @@ class QDragEnterEvent;
 class QDropEvent;
 class QMouseEvent;
 class QPaintEvent;
+class GBAStreamServer;
 
 namespace NetPlay
 {
@@ -86,6 +88,7 @@ private:
   void dropEvent(QDropEvent* event) override;
 
   std::weak_ptr<HW::GBA::Core> m_core;
+  std::unique_ptr<GBAStreamServer> m_stream_server;
   HW::GBA::CoreInfo m_core_info;
   QImage m_last_frame;
   QImage m_previous_frame;
